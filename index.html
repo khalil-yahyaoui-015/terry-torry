@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TERRITO — Conquête de territoire</title>
+<title>Terry Torry — Conquête de territoire</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
 
-  :root {
+  :root {  /* On declare les couleurs qu'une seule fois */
     --bg: #050810;
     --grid: rgba(0,200,255,0.04);
     --player: #00f5ff;
@@ -266,7 +266,7 @@
 
 <div id="centerUI">
   <div id="startScreen">
-    <h1>TERRITO</h1>
+    <h1>Terry Torry</h1>
     <div class="subtitle">Conquête de territoire</div>
     <div class="instructions">
       <span>→ Déplace ta souris</span> pour peindre le territoire<br>
@@ -288,8 +288,8 @@
 </div>
 
 <script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById('gameCanvas');  // "canvas" c'est l'element HTML sur lequel on dessine.
+const ctx = canvas.getContext('2d');  // "ctx" c'est le pinceau.
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -298,13 +298,13 @@ window.addEventListener('resize', () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   if (game) game.resize();
-});
+});  // "game.resize()" recalcule aussi la grille du territoire.
 
 // ---- CONFIG ----
-const CELL = 8; // pixel size per territory cell
-const TRAIL_LENGTH = 24;
+const CELL = 8;  // chaque cellule de territoire = 8x8 pixels
+const TRAIL_LENGTH = 24;  // la trainee garde les 24 dernieres positions
 const ENEMY_COUNT = 3;
-const GAME_DURATION = 120; // seconds
+const GAME_DURATION = 120;  // 2 minutes en secondes
 
 const COLORS = {
   player: '#00f5ff',
@@ -334,9 +334,11 @@ function startGame() {
 class TerritoryGrid {
   constructor(w, h, cellSize) {
     this.cellSize = cellSize;
-    this.cols = Math.ceil(w / cellSize);
-    this.rows = Math.ceil(h / cellSize);
+    this.cols = Math.ceil(w / cellSize);  // nb de colonnes
+    this.rows = Math.ceil(h / cellSize);  // nb de lignes
     this.data = new Uint8Array(this.cols * this.rows); // 0=neutral,1=player,2-4=enemies
+    // Uint8Array = tableau d'entier 0-255, ultra leger
+    // 0 = neutre, 1 = joueur, 2/3/4 = ennemis
   }
 
   index(cx, cy) { return cy * this.cols + cx; }
@@ -347,8 +349,8 @@ class TerritoryGrid {
     return this.index(cx, cy);
   }
   set(x, y, owner) {
-    const i = this.cellAt(x, y);
-    if (i >= 0) this.data[i] = owner;
+    const i = this.cellAt(x, y);  // converti pixel en index grille
+    if (i >= 0) this.data[i] = owner;  // assigne le proprietaire
   }
   get(x, y) {
     const i = this.cellAt(x, y);
@@ -367,10 +369,10 @@ class TerritoryGrid {
     for (let cy = 0; cy < this.rows; cy++) {
       for (let cx = 0; cx < this.cols; cx++) {
         const owner = this.data[this.index(cx, cy)];
-        if (owner === 0) continue;
+        if (owner === 0) continue;  // cellule neutre = on dessine rien
         const color = owner === 1 ? COLORS.playerFill : COLORS.enemiesFill[owner - 2];
         ctx.fillStyle = color;
-        ctx.fillRect(cx * cs, cy * cs, cs, cs);
+        ctx.fillRect(cx * cs, cy * cs, cs, cs);  // dessine un carre colore
       }
     }
   }
@@ -401,23 +403,23 @@ class Entity {
 
   update(grid, mouseX, mouseY, others) {
     if (this.isPlayer) {
-      const dx = mouseX - this.x;
-      const dy = mouseY - this.y;
+      const dx = mouseX - this.x;  // difference horizontale entre souris et joueur
+      const dy = mouseY - this.y;  // difference verticale
       const dist = Math.sqrt(dx*dx + dy*dy);
       if (dist > 4) {
-        this.x += (dx / dist) * this.speed;
+        this.x += (dx / dist) * this.speed;  // normalise le vecteur
         this.y += (dy / dist) * this.speed;
       }
     } else {
       // AI: wander toward neutral/enemy territory
-      this.angle += (Math.random() - 0.5) * this.turnSpeed * 2;
+      this.angle += (Math.random() - 0.5) * this.turnSpeed * 2;  // vire legerement a chaque frame
       // occasionally target neutral zones
       if (Math.random() < 0.01) {
         const rx = Math.random() * canvas.width;
         const ry = Math.random() * canvas.height;
-        this.angle = Math.atan2(ry - this.y, rx - this.x);
+        this.angle = Math.atan2(ry - this.y, rx - this.x);  // poijnte vers un point aleatoire
       }
-      this.x += Math.cos(this.angle) * this.speed;
+      this.x += Math.cos(this.angle) * this.speed;  // avance dans la direction de l'angle
       this.y += Math.sin(this.angle) * this.speed;
       // bounce
       if (this.x < 20 || this.x > canvas.width - 20) this.angle = Math.PI - this.angle;
@@ -427,27 +429,27 @@ class Entity {
     }
 
     // paint territory
-    grid.set(this.x, this.y, this.owner);
+    grid.set(this.x, this.y, this.owner);  // peint sur la cellule de l'entite
     // paint around
     for (let r = -grid.cellSize; r <= grid.cellSize; r += grid.cellSize) {
       for (let c = -grid.cellSize; c <= grid.cellSize; c += grid.cellSize) {
-        grid.set(this.x + c, this.y + r, this.owner);
+        grid.set(this.x + c, this.y + r, this.owner);  // peint aussi les 8 cellules autour
       }
     }
 
     // trail
-    this.trail.push({x: this.x, y: this.y});
-    if (this.trail.length > TRAIL_LENGTH) this.trail.shift();
+    this.trail.push({x: this.x, y: this.y});  // ajoute la position actuelle 
+    if (this.trail.length > TRAIL_LENGTH) this.trail.shift();  // suppri;e la plus vieille si > 24
   }
 
   draw(ctx) {
     // Draw trail
     if (this.trail.length > 1) {
       for (let i = 1; i < this.trail.length; i++) {
-        const t = i / this.trail.length;
+        const t = i / this.trail.length;  // t va de 0 (vieux) a 1 (recent)
         ctx.strokeStyle = this.color;
-        ctx.globalAlpha = t * 0.6;
-        ctx.lineWidth = (this.radius * 2) * t;
+        ctx.globalAlpha = t * 0.6;  // plsu recent = plus opaque
+        ctx.lineWidth = (this.radius * 2) * t;  // plus recent = plus epais
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(this.trail[i-1].x, this.trail[i-1].y);
@@ -489,17 +491,17 @@ class Entity {
 class Particle {
   constructor(x, y, color) {
     this.x = x; this.y = y;
-    this.vx = (Math.random() - 0.5) * 4;
-    this.vy = (Math.random() - 0.5) * 4;
-    this.color = color;
+    this.vx = (Math.random() - 0.5) * 4;  // velocite X entre -2 et +2
+    this.vy = (Math.random() - 0.5) * 4;  // velocite Y entre -2 et +2
+    this.color = color;  // commence a 100% e vie
     this.life = 1;
-    this.decay = 0.04 + Math.random() * 0.04;
+    this.decay = 0.04 + Math.random() * 0.04;  // perd entre 4% et 8% de vie par frame
     this.size = 2 + Math.random() * 3;
   }
   update() {
-    this.x += this.vx;
-    this.y += this.vy;
-    this.life -= this.decay;
+    this.x += this.vx;  // avance
+    this.y += this.vy;  // friction -perd 5% de vitesse par frame, ralentit progressivement
+    this.life -= this.decay;  // vieillit
     this.vx *= 0.95;
     this.vy *= 0.95;
   }
@@ -568,19 +570,19 @@ class Game {
   }
 
   loop(ts) {
-    const dt = (ts - this.lastTime) / 1000;
+    const dt = (ts - this.lastTime) / 1000;  // temps ecoule depuis la derniere frame
     this.lastTime = ts;
-    this.frame++;
+    this.frame++;  // decompte le timer
 
     if (this.running) {
       this.timeLeft -= dt;
       if (this.timeLeft <= 0) { this.timeLeft = 0; this.endGame(); return; }
     }
 
-    this.update(dt);
-    this.render();
+    this.update(dt);  // met a jour la logique 
+    this.render(); // dessine
 
-    this.animId = requestAnimationFrame(t => this.loop(t));
+    this.animId = requestAnimationFrame(t => this.loop(t));  // planifie la prochaine frame
   }
 
   update(dt) {
@@ -597,7 +599,7 @@ class Game {
       }
     });
 
-    this.particles = this.particles.filter(p => p.life > 0);
+    this.particles = this.particles.filter(p => p.life > 0);  // nettoie les mortes
     this.particles.forEach(p => p.update());
 
     // Update UI
@@ -625,16 +627,16 @@ class Game {
 
     // bg
     ctx.fillStyle = '#050810';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);  // fond noir
 
     // grid
-    ctx.drawImage(this.gridCanvas, 0, 0);
+    ctx.drawImage(this.gridCanvas, 0, 0); // lignes de grille (pre-rendues sur un canvas separe)
 
     // territory
-    this.grid.draw(ctx);
+    this.grid.draw(ctx);  // territoire colore
 
     // particles (below entities)
-    this.particles.forEach(p => p.draw(ctx));
+    this.particles.forEach(p => p.draw(ctx));  // particules
 
     // entities
     this.enemies.forEach(e => e.draw(ctx));
@@ -653,7 +655,7 @@ class Game {
   }
 
   endGame() {
-    this.running = false;
+    this.running = false;  // stoppe le timer
     const total = this.grid.cols * this.grid.rows;
     const playerPct = Math.round(this.grid.countOwner(1) / total * 100);
     const e1 = Math.round(this.grid.countOwner(2) / total * 100);
